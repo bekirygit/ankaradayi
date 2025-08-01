@@ -21,15 +21,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+import dj_database_url # Dosyanın en üstüne ekleyin
+
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-z=(2ovnxl6psb9^sy%kgk8d6%-6$z@^%p5z#vz_@wn*e+u0o9w",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 
 # Application definition
@@ -83,14 +85,10 @@ LOGOUT_REDIRECT_URL = "login"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "your_strong_password_here",
-        "HOST": "localhost",
-        "PORT": "5432",
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600 # Bağlantı ömrü (saniye)
+    )
 }
 
 
