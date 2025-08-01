@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}Mesai - Şube Yönetim Sistemi{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Mesai Yönetimi</h1>
+        <div class="flex space-x-2">
+            <div class="relative inline-block text-left" data-dropdown>
+                <button type="button" id="download-menu-button-mesai" class="inline-flex items-center justify-center w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-dropdown-toggle>
+                    İndir
+                    <span class="material-icons ml-1">expand_more</span>
+                </button>
+                <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none hidden" data-dropdown-menu aria-labelledby="download-menu-button-mesai">
+                    <div class="py-1" role="menu" aria-orientation="vertical">
+                        <a href="{% url 'yonetim:export_mesai_excel' %}?{{ request.GET.urlencode }}" class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">📄 Excel'e Aktar</a>
+                        <a href="{% url 'yonetim:print_mesai_listesi' %}?{{ request.GET.urlencode }}" target="_blank" class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">📄 PDF'e Aktar</a>
+                    </div>
+                </div>
+            </div>
+            {% if perms.yonetim.add_mesai %}
+            <a href="{% url 'yonetim:mesai_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                ➕ Yeni Mesai Ekle
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-blue-50 dark:bg-blue-800/30 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="text-3xl mr-3">⏰</div>
+                <div>
+                    <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200">Toplam Mesai</h3>
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ toplam_mesai|floatformat:2 }} saat</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-green-50 dark:bg-green-800/30 border border-green-200 dark:border-green-700 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="text-3xl mr-3">👥</div>
+                <div>
+                    <h3 class="text-lg font-semibold text-green-900 dark:text-green-200">Personel Sayısı</h3>
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ personel_sayisi }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-purple-50 dark:bg-purple-800/30 border border-purple-200 dark:border-purple-700 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="text-3xl mr-3">📊</div>
+                <div>
+                    <h3 class="text-lg font-semibold text-purple-900 dark:text-purple-200">Ortalama Mesai</h3>
+                    <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {{ ortalama_mesai|floatformat:2 }} saat
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ay Navigasyonu -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6 flex justify-between items-center">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}{% if filtreler.personel_id %}&personel={{ filtreler.personel_id }}{% endif %}{% if filtreler.sube_id %}&sube={{ filtreler.sube_id }}{% endif %}{% if filtreler.q %}&q={{ filtreler.q }}{% endif %}" class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">‹ Önceki Ay</a>
+        <div class="text-center">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ current_date|date:"F Y" }}</h2>
+            <a href="{% url 'yonetim:mesai_listesi' %}?year={{ today.year }}&month={{ today.month }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Bu Aya Git</a>
+        </div>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}{% if filtreler.personel_id %}&personel={{ filtreler.personel_id }}{% endif %}{% if filtreler.sube_id %}&sube={{ filtreler.sube_id }}{% endif %}{% if filtreler.q %}&q={{ filtreler.q }}{% endif %}" class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">Sonraki Ay ›</a>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        
+        <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <input type="hidden" name="year" value="{{ filtreler.year }}">
+            <input type="hidden" name="month" value="{{ filtreler.month }}">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Personel</label>
+                <select name="personel" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
+                    <option value="">Tümü</option>
+                    {% for p in personeller %}
+                    <option value="{{ p.id }}" {% if filtreler.personel_id == p.id|stringformat:"s" %}selected{% endif %}>
+                        {{ p.tam_ad }} - {{ p.sube.ad }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Şube</label>
+                <select name="sube" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
+                    <option value="">Tümü</option>
+                    {% for s in subeler %}
+                    <option value="{{ s.id }}" {% if filtreler.sube_id == s.id|stringformat:"s" %}selected{% endif %}>
+                        {{ s.ad }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-span-full md:col-span-2 flex items-end space-x-4">
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Arama</label>
+                    <input type="text" name="q" value="{{ filtreler.q|default_if_none:'' }}" placeholder="Personel adı, soyadı veya açıklama..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onkeyup="debounce(this.form.submit, 500)">
+                </div>
+                <a href="{% url 'yonetim:mesai_listesi' %}?year={{ filtreler.year }}&month={{ filtreler.month }}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    ❌ Temizle
+                </a>
+            </div>
+        </form>
+        </form>
+    </div>
+
+    
+
+    <!-- Mesai Listesi -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Mesai Kayıtları</h2>
+        </div>
+        
+        {% if page_obj %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Personel
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Şube
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Tarih
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Saat
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Açıklama
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            İşlemler
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for mesai in page_obj %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                    {{ mesai.personel.tam_ad }}
+                                </div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                                    {{ mesai.personel.pozisyon }}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if mesai.personel.sube.tur == 'cafe' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+                                {% if mesai.personel.sube.tur == 'cafe' %}☕{% else %}🏨{% endif %}
+                                {{ mesai.personel.sube.ad }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                            {{ mesai.tarih|date:"d.m.Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                {{ mesai.saat }} saat
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            {% if mesai.aciklama %}
+                                {{ mesai.aciklama|truncatechars:50 }}
+                            {% else %}
+                                <span class="text-gray-400 dark:text-gray-500">Açıklama yok</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                {% if perms.yonetim.change_mesai %}
+                                <a href="{% url 'yonetim:mesai_duzenle' mesai.id %}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    ✏️ Düzenle
+                                </a>
+                                {% endif %}
+                                {% if perms.yonetim.delete_mesai %}
+                                <a href="{% url 'yonetim:mesai_sil' mesai.id %}" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                    🗑️ Sil
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Sayfalama -->
+        {% if page_obj.has_other_pages %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&year={{ filtreler.year }}&month={{ filtreler.month }}{% if filtreler.personel_id %}&personel={{ filtreler.personel_id }}{% endif %}{% if filtreler.sube_id %}&sube={{ filtreler.sube_id }}{% endif %}{% if filtreler.q %}&q={{ filtreler.q }}{% endif %}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                ← Önceki
+            </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&year={{ filtreler.year }}&month={{ filtreler.month }}{% if filtreler.personel_id %}&personel={{ filtreler.personel_id }}{% endif %}{% if filtreler.sube_id %}&sube={{ filtreler.sube_id }}{% endif %}{% if filtreler.q %}&q={{ filtreler.q }}{% endif %}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Sonraki →
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            <span class="font-medium">{{ page_obj.start_index }}</span>
+                            -
+                            <span class="font-medium">{{ page_obj.end_index }}</span>
+                            arası, toplam
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                            kayıt
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                            {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                ← Önceki
+                            </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="bg-blue-600 text-white relative inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}&year={{ filtreler.year }}&month={{ filtreler.month }}{% if filtreler.personel_id %}&personel={{ filtreler.personel_id }}{% endif %}{% if filtreler.sube_id %}&sube={{ filtreler.sube_id }}{% endif %}{% if filtreler.q %}&q={{ filtreler.q }}{% endif %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                Sonraki →
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">⏰</div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Henüz mesai kaydı yok</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">İlk mesai kaydını ekleyerek başlayın.</p>
+            <a href="{% url 'yonetim:mesai_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                ➕ İlk Mesai Kaydını Ekle
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}  

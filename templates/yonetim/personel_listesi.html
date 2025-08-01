@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Personel - Şube Yönetim Sistemi{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Personel</h1>
+        <div class="flex space-x-2">
+            <div class="relative inline-block text-left" data-dropdown>
+                <button type="button" id="download-menu-button-personel" class="inline-flex items-center justify-center w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-dropdown-toggle>
+                    İndir
+                    <span class="material-icons ml-1">expand_more</span>
+                </button>
+                <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none hidden" data-dropdown-menu aria-labelledby="download-menu-button-personel">
+                    <div class="py-1" role="menu" aria-orientation="vertical">
+                        <a href="{% url 'yonetim:export_personel_excel' %}?{{ request.GET.urlencode }}" class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">📄 Excel'e Aktar</a>
+                        <a href="{% url 'yonetim:print_personel_listesi' %}?{{ request.GET.urlencode }}" target="_blank" class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">📄 PDF'e Aktar</a>
+                    </div>
+                </div>
+            </div>
+            {% if perms.yonetim.add_personel %}
+            <a href="{% url 'yonetim:personel_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                ➕ Yeni Personel Ekle
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtreler ve Arama -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <form method="get" class="space-y-4">
+            <div class="flex flex-wrap justify-start gap-4 items-end">
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Şube Filtresi</label>
+                    <select name="sube" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
+                        <option value="">Tüm Şubeler</option>
+                        {% for sube in subeler %}
+                        <option value="{{ sube.id }}" {% if secili_sube == sube.id|stringformat:"s" %}selected{% endif %}>
+                            {{ sube.ad }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arama</label>
+                    <input type="text" name="q" value="{{ q|default_if_none:'' }}" placeholder="Ad, soyad veya pozisyon ara..." 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onkeyup="debounce(this.form.submit, 500)">
+                </div>
+                {% if q or secili_sube %}
+                <div class="flex-shrink-0">
+                    <a href="{% url 'yonetim:personel_listesi' %}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">❌ Filtreleri Temizle</a>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    
+
+    <!-- Personel Listesi -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Personel</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Şube</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Pozisyon</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Toplam Mesai</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">İşe Başlama</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for personel in personeller %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                        <span class="text-blue-600 dark:text-blue-300">👤</span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-200">{{ personel.tam_ad }}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ personel.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{{ personel.sube.ad }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{{ personel.pozisyon }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                            <div class="flex items-center">
+                                <span class="text-blue-600 dark:text-blue-400 mr-1">⏰</span>
+                                {{ personel.toplam_mesai_saati }} saat
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                            {{ personel.ise_baslama_tarihi|date:"d.m.Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                {% if perms.yonetim.change_personel %}
+                                <a href="{% url 'yonetim:personel_duzenle' personel.pk %}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">✏️</a>
+                                {% endif %}
+                                {% if perms.yonetim.delete_personel %}
+                                <a href="{% url 'yonetim:personel_sil' personel.pk %}" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="text-6xl mb-4">👥</div>
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Henüz personel kaydı bulunmuyor</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-6">İlk personelinizi ekleyerek başlayın.</p>
+                            <a href="{% url 'yonetim:personel_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">İlk Personeli Ekle</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Sayfalama -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if secili_sube %}&sube={{ secili_sube }}{% endif %}" 
+               class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                ← Önceki
+            </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium">
+                    {{ num }}
+                </span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}{% if secili_sube %}&sube={{ secili_sube }}{% endif %}" 
+                   class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {{ num }}
+                </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if secili_sube %}&sube={{ secili_sube }}{% endif %}" 
+               class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Sonraki →
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

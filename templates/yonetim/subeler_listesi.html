@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Şubeler - Şube Yönetim Sistemi{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Şubeler</h1>
+        <a href="{% url 'yonetim:sube_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            ➕ Yeni Şube Ekle
+        </a>
+    </div>
+
+    <!-- Arama -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <form method="get" class="flex gap-4">
+            <div class="flex-1">
+                <input type="text" name="q" value="{{ q|default_if_none:'' }}" placeholder="Şube adı ile arayın..." 
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" onkeyup="debounce(this.form.submit, 500)">
+            </div>
+            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 hidden">🔍 Ara</button>
+            {% if q %}
+            <a href="{% url 'yonetim:subeler_listesi' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">❌ Temizle</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Şubeler Listesi -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for sube in subeler %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ sube.ad }}</h3>
+                <div class="flex space-x-2">
+                    <a href="{% url 'yonetim:sube_duzenle' sube.pk %}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">✏️</a>
+                    <a href="{% url 'yonetim:sube_sil' sube.pk %}" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">🗑️</a>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <span>🏷️</span>
+                    <span class="text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if sube.tur == 'cafe' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+                            {% if sube.tur == 'cafe' %}☕ Cafe{% else %}🏨 Otel{% endif %}
+                        </span>
+                    </span>
+                </div>
+                <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <span>📍</span>
+                    <span class="text-sm">{{ sube.adres|truncatechars:50 }}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <span>📞</span>
+                    <span class="text-sm">{{ sube.telefon }}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <span>👤</span>
+                    <span class="text-sm">{{ sube.yonetici }}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <span>👥</span>
+                    <span class="text-sm">{{ sube.personel_sayisi }} personel</span>
+                </div>
+                <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div class="text-center">
+                            <div class="text-green-600 dark:text-green-400 font-medium">{{ sube.toplam_gelir|floatformat:0|intcomma }}₺</div>
+                            <div class="text-gray-500 dark:text-gray-400">Gelir</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-red-600 dark:text-red-400 font-medium">{{ sube.toplam_gider|floatformat:0|intcomma }}₺</div>
+                            <div class="text-gray-500 dark:text-gray-400">Gider</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-medium {% if sube.net_kar >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                {{ sube.net_kar|floatformat:0|intcomma }}₺
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400">Net</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                <div class="text-6xl mb-4">🏢</div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Henüz şube kaydı bulunmuyor</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">İlk şubenizi ekleyerek başlayın.</p>
+                <a href="{% url 'yonetim:sube_ekle' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">İlk Şubeyi Ekle</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sayfalama -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}" 
+               class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                ← Önceki
+            </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium">
+                    {{ num }}
+                </span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}" 
+                   class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {{ num }}
+                </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}" 
+               class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Sonraki →
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gelir/Gider Listesi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        @media print { body { -webkit-print-color-adjust: exact; } }
+    </style>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl font-bold mb-4">Gelir/Gider Listesi</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Tarih</th>
+                <th>Şube</th>
+                <th>Tip</th>
+                <th>Kategori</th>
+                <th>Tutar</th>
+                <th>Açıklama</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for gg in gelir_giderler %}
+            <tr>
+                <td>{{ gg.tarih|date:"d.m.Y" }}</td>
+                <td>{{ gg.sube.ad }}</td>
+                <td>{{ gg.get_tip_display }}</td>
+                <td>{{ gg.get_kategori_display }}</td>
+                <td>{{ gg.tutar }} ₺</td>
+                <td>{{ gg.aciklama|default_if_none:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script> window.onload = () => window.print(); </script>
+</body>
+</html>

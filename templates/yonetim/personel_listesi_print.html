@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Personel Listesi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        @media print {
+            body { -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl font-bold mb-4">Personel Listesi</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Soyad</th>
+                <th>Pozisyon</th>
+                <th>Şube</th>
+                <th>İşe Başlama Tarihi</th>
+                <th>Telefon</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for personel in personeller %}
+            <tr>
+                <td>{{ personel.ad }}</td>
+                <td>{{ personel.soyad }}</td>
+                <td>{{ personel.pozisyon }}</td>
+                <td>{{ personel.sube.ad }}</td>
+                <td>{{ personel.ise_baslama_tarihi|date:"d.m.Y" }}</td>
+                <td>{{ personel.telefon }}</td>
+                <td>{{ personel.email|default_if_none:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}
+{% if gelir_gider %}Gelir/Gider Düzenle{% else %}Yeni Gelir/Gider Ekle{% endif %} - Şube Yönetim Sistemi
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <div class="max-w-2xl mx-auto">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                {% if gelir_gider %}Gelir/Gider Düzenle{% else %}Yeni Gelir/Gider Ekle{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">
+                {% if gelir_gider %}Gelir/gider kaydını güncelleyin{% else %}Yeni bir gelir/gider kaydı oluşturun{% endif %}
+            </p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ field.label }}
+                    </label>
+                    {% if field.name == 'tarih' %}
+                    <div class="flex items-center space-x-2">
+                        {{ field|attr:"class:w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                        <div class="flex space-x-1">
+                            <button type="button" id="prev-day" class="p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="material-icons text-lg">chevron_left</span>
+                            </button>
+                            <button type="button" id="today" class="p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="material-icons text-lg">today</span>
+                            </button>
+                            <button type="button" id="next-day" class="p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="material-icons text-lg">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    {{ field|attr:"class:w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {% for error in field.errors %}
+                        <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text|safe }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="flex space-x-4 pt-6">
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        {% if gelir_gider %}💾 Güncelle{% else %}➕ Ekle{% endif %}
+                    </button>
+                    <a href="{% url 'yonetim:gelir_gider_listesi' %}" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        ❌ İptal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('{{ form.tarih.id_for_label }}');
+
+        // YYYY-MM-DD formatındaki tarihi Date nesnesine çevirir (UTC olarak)
+        function parseISODate(str) {
+            const parts = str.split('-');
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+        }
+
+        // Date nesnesini YYYY-MM-DD formatına çevirir
+        function toISODateString(date) {
+            const year = date.getUTCFullYear();
+            const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const day = date.getUTCDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function changeDate(days) {
+            const currentDate = parseISODate(dateInput.value);
+            currentDate.setUTCDate(currentDate.getUTCDate() + days);
+            dateInput.value = toISODateString(currentDate);
+        }
+
+        document.getElementById('prev-day').addEventListener('click', () => changeDate(-1));
+        document.getElementById('next-day').addEventListener('click', () => changeDate(1));
+        document.getElementById('today').addEventListener('click', () => {
+            const today = new Date();
+            const timezoneOffset = today.getTimezoneOffset() * 60000; // milisaniye
+            const localToday = new Date(today - timezoneOffset);
+            dateInput.value = localToday.toISOString().split('T')[0];
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Virtual environment
+venv/
+venv_bak/
+
+# Database
+db.sqlite3
+
+# Environment variables
+.env
+*.env
+
+# IDE-specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Django media files
+media/
+
+# Static files (if collected locally)
+staticfiles/
+
+# Logs
+*.log
