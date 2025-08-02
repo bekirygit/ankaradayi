@@ -19,4 +19,4 @@ COPY . /app/
 RUN python manage.py collectstatic --noinput
 
 # Gunicorn'ı çalıştır
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "sube_yonetim.wsgi:application"]
+CMD python manage.py migrate && python manage.py create_initial_superuser && gunicorn --bind 0.0.0.0:$PORT sube_yonetim.wsgi:application
