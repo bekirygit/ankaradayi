@@ -6,3 +6,5 @@ pandas
 openpyxl
 django-widget-tweaks
 psycopg2-binary
+gunicorn
+dj_database_url
